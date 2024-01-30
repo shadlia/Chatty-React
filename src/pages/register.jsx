@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.svg";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { ResgisterAPI } from "./../Services/auth.service";
 const FormContainer = styled.div`
   height: 100vh;
   width: 100vw;
@@ -76,6 +77,7 @@ const FormContainer = styled.div`
 `;
 
 export default function Register() {
+  const navigate = useNavigate();
   const [values, setValues] = useState({
     username: "",
     email: "",
@@ -89,20 +91,52 @@ export default function Register() {
     draggable: true,
     theme: "dark",
   };
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    handleValidation();
-    alert("form");
+    if (handleValidation()) {
+      const { password, username, email } = values;
+      const response = await ResgisterAPI({ username, email, password });
+
+      if (response.success === false) {
+        toast.error(`${response.msg}`, toastOptions);
+      }
+      if (response.success === true) {
+        localStorage.setItem(
+          "chat_app_user",
+          JSON.stringify(response.data.user)
+        );
+        navigate("/");
+      }
+    }
   };
   const handleChange = (event) => {
     setValues({ ...values, [event.target.name]: event.target.value });
   };
   const handleValidation = () => {
     const { password, confirmPassword, username, email } = values;
-    if (password !== confirmPassword) {
+    if (username.length < 3) {
+      toast.error("Username must be greater than 3 characters ", toastOptions);
+      return false;
+    } else if (email === "") {
+      toast.error(" Email is required ", toastOptions);
+      return false;
+    } else if (password.length < 8) {
+      toast.error(
+        "Password must be equal or greater than 8 characters ",
+        toastOptions
+      );
+      return false;
+    } else if (password !== confirmPassword) {
       toast.error("Password and Confirm password do not match", toastOptions);
+      return false;
     }
+    return true;
   };
+  useEffect(() => {
+    if (localStorage.getItem("chat_app_user")) {
+      navigate("/");
+    }
+  }, []);
   return (
     <>
       <ToastContainer />
